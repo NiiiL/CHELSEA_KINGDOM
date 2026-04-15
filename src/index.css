@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Salo';
+  src: url('/fonts/Salo-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@theme {
+  --font-salo: "Salo", "Bebas Neue", impact, sans-serif;
+  --font-bebas: "Bebas Neue", impact, sans-serif;
+  --font-inter: "Inter", sans-serif;
+  --font-noto: "Noto Sans", sans-serif;
+  --font-sentient: "Sentient", "Cormorant Garamond", serif;
+}
+
+body {
+  background-color: #f5f3ef;
+}
+
+/* Overlay scrollbar: floats above content, takes zero layout width.
+   IMPORTANT: Do NOT add -webkit-scrollbar rules here — they force the browser
+   out of overlay mode and reintroduce the layout-shifting classic scrollbar. */
+.custom-scrollbar {
+  overflow-y: overlay; /* Chromium/Safari: scrollbar floats, no layout shift */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: transparent transparent; /* Firefox: hidden by default */
+}
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(200, 200, 200, 0.5) transparent; /* Firefox: show on hover */
+}
