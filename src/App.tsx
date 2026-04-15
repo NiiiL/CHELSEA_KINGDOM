@@ -446,22 +446,29 @@ export default function App() {
                   </div>
 
                   {/* Color Info */}
-                  <div id="section-color" className="flex gap-6 items-end scroll-mt-6">
+                  <div id="section-color" className="flex gap-6 items-stretch scroll-mt-6">
+                    {/* 1. 关键：稍微加大尺寸至 w-28，并使用 items-stretch 让容器高度自适应内容 */}
                     <div
-                      className="w-20 md:w-24 aspect-square shrink-0 rounded-none shadow-inner"
+                      className="w-24 md:w-28 aspect-square shrink-0 rounded-none shadow-inner"
                       style={{ backgroundColor: sel.color }}
                     />
-                    <div className="flex-1 flex flex-col justify-end min-w-0">
-                      <h4
-                        className="text-[20px] md:text-[24px] font-salo text-black uppercase tracking-[3.2px] leading-tight"
-                        style={{ fontFeatureSettings: '"ss01" on' }}
-                      >
-                        {t ? sel.cName : sel.cNameCN}
-                      </h4>
-                      <span className="text-gray-400 font-inter font-light text-[11px] md:text-[13px] uppercase leading-none mt-1">
-                        {sel.color}
-                      </span>
-                      <p className="text-[10px] md:text-[11px] text-gray-800 leading-relaxed font-noto mt-3">
+
+                    {/* 2. 关键：使用 justify-between，它会自动拉开标题、十六进制值和描述的间距，
+      确保第一行文字顶部和最后一行文字底部，分别与色块的顶边和底边完美对齐 */}
+                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                      <div>
+                        <h4
+                          className="text-[20px] md:text-[24px] font-salo text-black uppercase tracking-[3.2px] leading-none"
+                          style={{ fontFeatureSettings: '"ss01" on' }}
+                        >
+                          {t ? sel.cName : sel.cNameCN}
+                        </h4>
+                        <span className="text-gray-400 font-inter font-light text-[11px] md:text-[13px] uppercase leading-none mt-2 block">
+                          {sel.color}
+                        </span>
+                      </div>
+
+                      <p className="text-[10px] md:text-[11px] text-gray-800 leading-relaxed font-noto">
                         {sel.hasCopy
                           ? (t ? sel.colorInspiration : sel.colorInspirationCN)
                           : (t ? `The color ${sel.cName} is deeply rooted in the heritage of ${sel.country}.` : `${sel.cNameCN}是一种融合了该国历史与自然景观的复合色调。`)}
