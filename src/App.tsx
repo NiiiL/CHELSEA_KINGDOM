@@ -446,17 +446,22 @@ export default function App() {
                   </div>
 
                   {/* Color Info */}
-                  <div id="section-color" className="flex gap-6 items-stretch scroll-mt-6">
-                    <div className="w-16 aspect-square shrink-0 rounded-none shadow-inner" style={{ backgroundColor: sel.color }} />
-                    <div className="flex flex-col justify-center py-1">
+                  <div id="section-color" className="flex gap-6 items-end scroll-mt-6">
+                    <div
+                      className="w-20 md:w-24 aspect-square shrink-0 rounded-none shadow-inner"
+                      style={{ backgroundColor: sel.color }}
+                    />
+                    <div className="flex-1 flex flex-col justify-end min-w-0">
                       <h4
-                        className="text-[24px] font-salo text-black uppercase tracking-[3.2px] leading-[32px]"
+                        className="text-[20px] md:text-[24px] font-salo text-black uppercase tracking-[3.2px] leading-tight"
                         style={{ fontFeatureSettings: '"ss01" on' }}
                       >
                         {t ? sel.cName : sel.cNameCN}
                       </h4>
-                      <span className="text-gray-400 font-inter font-light text-[11px] md:text-[13px] mt-0 mb-3 leading-none uppercase">{sel.color}</span>
-                      <p className="text-[9px] text-gray-800 leading-relaxed font-noto">
+                      <span className="text-gray-400 font-inter font-light text-[11px] md:text-[13px] uppercase leading-none mt-1">
+                        {sel.color}
+                      </span>
+                      <p className="text-[10px] md:text-[11px] text-gray-800 leading-relaxed font-noto mt-3">
                         {sel.hasCopy
                           ? (t ? sel.colorInspiration : sel.colorInspirationCN)
                           : (t ? `The color ${sel.cName} is deeply rooted in the heritage of ${sel.country}.` : `${sel.cNameCN}是一种融合了该国历史与自然景观的复合色调。`)}
@@ -505,10 +510,12 @@ export default function App() {
 
                   {/* Footer */}
                   <div className="text-center mt-8 mb-4">
-                    <p className="text-[13px] leading-[25px] tracking-normal text-gray-400 italic font-inter font-light">Made by: @cjonthebeat</p>
+                    <p className="text-[13px] leading-[25px] tracking-normal text-gray-400 italic font-inter font-light">
+                      Made by: @cjonthebeat
+                    </p>
                   </div>
 
-                </div>
+                </div> {/* 对应 Content Section (p-6 md:p-10) */}
               </div>
             </motion.div>
           </motion.div>
@@ -517,4 +524,3 @@ export default function App() {
     </div>
   );
 }
-
