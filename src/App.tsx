@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Globe, Download, Shuffle, ArrowDownAZ } from "lucide-react";
+import { X, Globe, Download, Shuffle, ArrowDownAZ, LayoutGrid, ChevronDown } from "lucide-react";
 import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 
 const PLAYERS = [
   { id: "A1", country: "Albania", cn: "阿尔巴尼亚", firstName: "ARMANDO", player: "BROJA", concept: "Skanderbeg Hero", conceptCN: "斯坎德培民族英雄", color: "#B87878", accent: "#17202A", cName: "Balkan Rose", cNameCN: "巴尔干玫瑰", apps: 38, goals: 3, yrs: "2020-24", pos: "FW", alts: [], hasImg: true, bgImg: "https://picsum.photos/seed/broja/400/400", colorSourceImg: "https://picsum.photos/seed/albania-rose/600/400", desc: "Known as the 'Land of the Eagles,' Albania's national spirit is etched with 'resilience' and 'resistance.' The spirit of national hero Skanderbeg is not merely a historical footnote — it is the absolute totem of defiance and homeland protection in the hearts of a new generation.", descCN: "被誉为「山鹰之国」的阿尔巴尼亚，其民族灵魂深处烙印着「坚韧」与「抵抗」。民族英雄斯坎德培的精神不仅是历史的注脚，更是当代青年心中永不屈服、守卫家园的绝对图腾。", colorInspiration: "This dried-rose hue symbolizes the lingering warmth of heroic deeds frozen in history — less brazen than vivid red, it lends the image a sophisticated and deeply narrative quality.", colorInspirationCN: "这种干燥玫瑰色象征英雄事迹凝固后的历史余温，不同于鲜红的张扬，赋予画面一种高级且深沉的叙事感。", clothing: "The iconic Skanderbeg helmet (crowned with a golden goat's head) paired with a red velvet noble's robe. The goat's head symbolizes military genius, presenting Broja as a national warrior standing firm on the battlefield.", clothingCN: "标志性的斯坎德培头盔（顶部带有金色山羊头）与红色丝绒贵族袍。山羊头象征着军事天才，使布罗亚呈现出一种横刀立马的「民族战士」姿态。", texture: "The double-headed eagle totem and Serma gold-thread embroidery. Intricate heavy-stitch goldwork blends Byzantine and Ottoman folk art, projecting an imperial sense of weight against a deep crimson backdrop.", textureCN: "双头鹰图腾与 Serma 金线刺绣。繁复的重工金线融合了拜占庭与奥斯曼时期的民间艺术元素，在暗红色背景下彰显出皇室级的厚重感。", hasCopy: true, dotColor: "#e41e20ff" },
@@ -77,7 +76,8 @@ const SHOW_IMG = new Set([
   "Serbia",
   "Croatia",
   "Czechia",
-  "Uruguay"
+  "Uruguay",
+  "Argentina"
 ]);
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -103,13 +103,22 @@ export default function App() {
   const [overI, setOverI] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [modalImgError, setModalImgError] = useState(false);
+  const [viewMode, setViewMode] = useState<1 | 2 | 3 | 4 | 7>(7);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const t = lang === "en";
+
+  // 核心排序筛选逻辑：小网格展示前 N 名
+  const currentDisplay = useMemo(() => {
+    if (viewMode === 7) return cards;
+    const limit = viewMode * viewMode;
+    return cards.slice(0, limit);
+  }, [cards, viewMode]);
 
   useEffect(() => {
     setModalImgError(false);
   }, [sel]);
 
-  const onDS = (i: number) => setDragI(i);
+  const onDS = (i: number) => { if (viewMode !== 1) setDragI(i); };
   const onDO = (e: React.DragEvent, i: number) => {
     e.preventDefault();
     setOverI(i);
@@ -117,7 +126,8 @@ export default function App() {
   const onDr = (i: number) => {
     if (dragI !== null && dragI !== i) {
       const c = [...cards];
-      [c[dragI], c[i]] = [c[i], c[dragI]];
+      const [moved] = c.splice(dragI, 1);
+      c.splice(i, 0, moved);
       setCards(c);
     }
     setDragI(null);
@@ -134,65 +144,18 @@ export default function App() {
     setCards(sorted);
   };
 
-  const exportFile = async (format: "png" | "pdf") => {
-    const element = document.getElementById("export-area");
-    if (!element) return;
-
+  const exportFile = async () => {
+    const el = document.getElementById("export-area");
+    if (!el) return;
     setIsExporting(true);
-
-    // Small delay to allow UI to update
     setTimeout(async () => {
       try {
-        // Increase scale for ultra high resolution
-        const scale = 3;
-        const canvas = await html2canvas(element, {
-          backgroundColor: "#ffffff",
-          scale: scale,
-          useCORS: true,
-        });
-
-        // Add a white border
-        const borderedCanvas = document.createElement("canvas");
-        const ctx = borderedCanvas.getContext("2d");
-        const borderSize = 100 * scale; // 100px visual CSS border
-
-        borderedCanvas.width = canvas.width + borderSize * 2;
-        borderedCanvas.height = canvas.height + borderSize * 2;
-
-        if (ctx) {
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(0, 0, borderedCanvas.width, borderedCanvas.height);
-          ctx.drawImage(canvas, borderSize, borderSize);
-        }
-
-        if (format === "png") {
-          const link = document.createElement("a");
-          link.download = "chelsea-kingdom.png";
-          link.href = borderedCanvas.toDataURL("image/png");
-          link.click();
-        } else if (format === "pdf") {
-          // Send lossless PNG data to the PDF
-          const imgData = borderedCanvas.toDataURL("image/png");
-
-          // Key for crispness: PDF page is identical to visual CSS size,
-          // but we insert an image that holds 3x as many pixels.
-          const pdfWidth = borderedCanvas.width / scale;
-          const pdfHeight = borderedCanvas.height / scale;
-
-          const pdf = new jsPDF({
-            orientation: pdfWidth > pdfHeight ? "landscape" : "portrait",
-            unit: "px",
-            format: [pdfWidth, pdfHeight]
-          });
-
-          pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-          pdf.save("chelsea-kingdom.pdf");
-        }
-      } catch (err) {
-        console.error("Export failed:", err);
-      } finally {
-        setIsExporting(false);
-      }
+        const canvas = await html2canvas(el, { backgroundColor: "#f5f3ef", scale: 3, useCORS: true });
+        const link = document.createElement("a");
+        link.download = "chelsea-kingdom.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      } catch (err) { console.error(err); } finally { setIsExporting(false); }
     }, 100);
   };
 
@@ -207,6 +170,36 @@ export default function App() {
 
       <main className="px-4 py-2 w-full max-w-5xl mx-auto flex-1 flex flex-col relative mt-8">
         <div className="relative text-center mb-10 flex flex-col items-center w-full">
+          {/* Left: Grid Hamburger Menu */}
+          <div className="absolute top-0 left-0 z-50">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-inter border border-gray-300 bg-white hover:bg-black/5 transition-colors uppercase select-none"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Grid</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                  className="absolute top-full left-0 mt-1 bg-white border border-gray-300 shadow-xl min-w-[120px] overflow-hidden"
+                >
+                  {[7, 4, 3, 2, 1].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => { setViewMode(m as any); setIsMenuOpen(false); }}
+                      className={`w-full px-4 py-2.5 text-[10px] text-left font-inter tracking-widest hover:bg-black hover:text-white transition-colors uppercase ${viewMode === m ? 'bg-black/5 font-bold' : ''}`}
+                    >
+                      {m}×{m}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <div className="absolute top-0 right-0 z-10">
             <button
               onClick={() => setLang((l) => (l === "en" ? "zh" : "en"))}
@@ -236,71 +229,83 @@ export default function App() {
           </p>
         </div>
 
-        <motion.div
-          id="export-area"
-          layout
-          className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-0 bg-[#f5f3ef] p-0 w-full"
-        >
-          {cards.map((c, i) => {
-            const tc = tx(c.color);
-            const sc = sx(c.color);
-            return (
-              <motion.div
-                layout
-                key={c.id}
-                draggable
-                onDragStart={() => onDS(i)}
-                onDragOver={(e: any) => onDO(e, i)}
-                onDrop={() => onDr(i)}
-                onDragEnd={() => {
-                  setDragI(null);
-                  setOverI(null);
-                }}
-                onClick={() => setSel(c)}
-                whileHover={{ scale: 1.05, zIndex: 10 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative aspect-square flex flex-col items-center justify-end cursor-pointer overflow-hidden shadow-sm hover:shadow-xl transition-shadow rounded-none select-none"
-                style={{
-                  background: c.color,
-                  opacity: dragI === i ? 0.4 : 1,
-                  outline: overI === i ? "2px solid #1a1a1a" : "none",
-                }}
-              >
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] opacity-15 pointer-events-none z-0 crown-icon">
-                  <img
-                    src={crownSvg(tc)}
-                    alt=""
-                    className="w-[60%] min-w-[30px] max-w-[50px] mx-auto"
-                  />
-                </div>
-                {SHOW_IMG.has(c.country) && c.hasImg && (
-                  <div className="absolute inset-0 z-10 pointer-events-none">
+        {/* Display Area: Optimized for Marquee & Grid */}
+        <div className="relative w-full overflow-hidden bg-[#f5f3ef]">
+
+          <div
+            id="export-area"
+            className={`bg-[#f5f3ef] transition-all duration-500
+              ${viewMode === 1 ? 'flex flex-nowrap' : 'grid gap-0 w-full ' + (
+                viewMode === 7 ? 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7' :
+                  viewMode === 4 ? 'grid-cols-4' :
+                    viewMode === 3 ? 'grid-cols-3' :
+                      'grid-cols-2'
+              )}
+            `}
+            style={viewMode === 1 ? {
+              width: 'max-content',
+              animation: `marquee ${(cards.length) * 3}s linear infinite`
+            } : {}}
+          >
+            {(viewMode === 1 ? [...cards, ...cards] : currentDisplay).map((c, idx) => {
+              const tc = tx(c.color);
+              return (
+                <motion.div
+                  layout
+                  key={`${c.id}-${idx}`}
+                  draggable={viewMode !== 1}
+                  onDragStart={() => onDS(idx)}
+                  onDragOver={(e: any) => onDO(e, idx)}
+                  onDrop={() => onDr(idx)}
+                  onDragEnd={() => { setDragI(null); setOverI(null); }}
+                  onClick={() => setSel(c)}
+                  whileHover={viewMode !== 1 ? { scale: 1.05, zIndex: 10 } : {}}
+                  whileTap={viewMode !== 1 ? { scale: 0.95 } : {}}
+                  className={`relative aspect-square flex-shrink-0 flex flex-col items-center justify-end cursor-pointer overflow-hidden shadow-sm hover:shadow-xl transition-shadow rounded-none select-none
+                    ${viewMode === 1 ? 'w-[calc(100vw-32px)] max-w-5xl' : 'w-full'}
+                  `}
+                  style={{
+                    background: c.color,
+                    opacity: dragI === idx ? 0.4 : 1,
+                    outline: overI === idx ? "2px solid #1a1a1a" : "none",
+                  }}
+                >
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] opacity-15 pointer-events-none z-0 crown-icon">
                     <img
-                      src={`/THUMBNAIL/${c.country}.png`}
-                      alt={c.player}
-                      className="w-full h-full object-cover"
-                      crossOrigin="anonymous"
-                      onLoad={(e) => {
-                        const crown = e.currentTarget.parentElement?.previousElementSibling as HTMLElement;
-                        if (crown && crown.classList.contains('crown-icon')) {
-                          crown.style.display = 'none';
-                        }
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
+                      src={crownSvg(tc)}
+                      alt=""
+                      className="w-[60%] min-w-[30px] max-w-[50px] mx-auto"
                     />
                   </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </motion.div>
+                  {SHOW_IMG.has(c.country) && c.hasImg && (
+                    <div className="absolute inset-0 z-10 pointer-events-none">
+                      <img
+                        src={`/THUMBNAIL/${c.country}.png`}
+                        alt={c.player}
+                        className="w-full h-full object-cover"
+                        crossOrigin="anonymous"
+                        onLoad={(e) => {
+                          const crown = e.currentTarget.parentElement?.previousElementSibling as HTMLElement;
+                          if (crown && crown.classList.contains('crown-icon')) {
+                            crown.style.display = 'none';
+                          }
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
       </main>
 
-      <footer className="w-full max-w-5xl mx-auto px-4 py-12 flex justify-center items-center gap-4">
+      <footer className="w-full max-w-5xl mx-auto px-4 py-12 flex flex-wrap justify-center items-center gap-4">
         <button
-          onClick={shuffleCards}
+          onClick={() => setCards([...cards].sort(() => Math.random() - 0.5))}
           className="flex items-center gap-2 px-6 py-3 text-[11px] font-inter font-normal border border-gray-300 rounded-none hover:bg-black/5 transition-colors tracking-[0.1em] uppercase cursor-pointer"
           style={{ fontFeatureSettings: '"ss01" on' }}
         >
@@ -308,37 +313,31 @@ export default function App() {
           <span className="hidden sm:inline">{t ? "Shuffle" : "随机打乱"}</span>
         </button>
         <button
-          onClick={sortCards}
+          onClick={() => setCards([...PLAYERS])}
           className="flex items-center gap-2 px-6 py-3 text-[11px] font-inter font-normal border border-gray-300 rounded-none hover:bg-black/5 transition-colors tracking-[0.1em] uppercase cursor-pointer"
           style={{ fontFeatureSettings: '"ss01" on' }}
         >
           <ArrowDownAZ className="w-4 h-4" />
           <span className="hidden sm:inline">{t ? "Sort" : "字母排序"}</span>
         </button>
-        {/* ── EXPORT BUTTONS — set SHOW_EXPORT = true to re-enable ── */}
-        {(() => { const SHOW_EXPORT = false; return SHOW_EXPORT; })() && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportFile("png")}
-              disabled={isExporting}
-              className="flex items-center gap-2 px-6 py-3 text-[11px] font-inter font-normal border border-gray-300 rounded-none hover:bg-black/5 transition-colors tracking-[0.1em] uppercase cursor-pointer disabled:opacity-50"
-              style={{ fontFeatureSettings: '"ss01" on' }}
-            >
-              <Download className="w-4 h-4" />
-              {isExporting ? (t ? "Wait..." : "处理中...") : (t ? "PNG" : "导出 PNG")}
-            </button>
-            <button
-              onClick={() => exportFile("pdf")}
-              disabled={isExporting}
-              className="flex items-center gap-2 px-6 py-3 text-[11px] font-inter font-normal border border-gray-300 rounded-none hover:bg-black/5 transition-colors tracking-[0.1em] uppercase cursor-pointer disabled:opacity-50"
-              style={{ fontFeatureSettings: '"ss01" on' }}
-            >
-              <Download className="w-4 h-4" />
-              {isExporting ? (t ? "Wait..." : "处理中...") : (t ? "PDF" : "导出 PDF")}
-            </button>
-          </div>
-        )}
+        <button
+          onClick={exportFile}
+          disabled={isExporting}
+          className="flex items-center gap-2 px-6 py-3 text-[11px] font-inter font-normal border border-gray-300 rounded-none hover:bg-black/5 transition-colors tracking-[0.1em] uppercase cursor-pointer disabled:opacity-50"
+          style={{ fontFeatureSettings: '"ss01" on' }}
+        >
+          <Download className="w-4 h-4" />
+          {isExporting ? "..." : (t ? "Export PNG" : "导出图片")}
+        </button>
       </footer>
+
+      {/* CSS 动画：位移 -50% 配合两组内容实现无缝衔接 */}
+      <style>{`
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+      `}</style>
 
       <AnimatePresence>
         {sel && (
