@@ -147,16 +147,29 @@ export default function App() {
   const exportFile = async () => {
     const el = document.getElementById("export-area");
     if (!el) return;
+    
+    // Fix for html2canvas object-fit offset bug: reset scroll before capture
+    const prevScrollY = window.scrollY;
+    const prevScrollX = window.scrollX;
+    window.scrollTo(0, 0);
+
     setIsExporting(true);
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(el, { backgroundColor: "#f5f3ef", scale: 3, useCORS: true });
-        const link = document.createElement("a");
-        link.download = "chelsea-kingdom.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-      } catch (err) { console.error(err); } finally { setIsExporting(false); }
-    }, 100);
+    // 给一些时间让 DOM 更新（移除动画、增加 Padding），并确保滚动重置生效
+    await new Promise(r => setTimeout(r, 400));
+    try {
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#FFF9EB",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = "chelsea-kingdom.png";
+      link.href = canvas.toDataURL("image/png", 0.9);
+      link.click();
+    } catch (err) { console.error(err); } finally { 
+      setIsExporting(false); 
+      window.scrollTo(prevScrollX, prevScrollY);
+    }
   };
 
   const crownSvg = (color: string) =>
@@ -234,15 +247,15 @@ export default function App() {
 
           <div
             id="export-area"
-            className={`bg-[#f5f3ef] transition-all duration-500
-              ${viewMode === 1 ? 'flex flex-nowrap' : 'grid gap-0 w-full ' + (
-                viewMode === 7 ? 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7' :
+            className={`${isExporting ? 'pointer-events-none' : 'transition-all duration-500 pointer-events-auto'} ${isExporting ? 'p-[100px] bg-[#FFF9EB]' : 'bg-[#f5f3ef]'}
+              ${(viewMode === 1 && !isExporting) ? 'flex flex-nowrap' : 'grid gap-0 w-full ' + (
+                (viewMode === 7 || (viewMode === 1 && isExporting)) ? 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7' :
                   viewMode === 4 ? 'grid-cols-4' :
                     viewMode === 3 ? 'grid-cols-3' :
                       'grid-cols-2'
               )}
             `}
-            style={viewMode === 1 ? {
+            style={(viewMode === 1 && !isExporting) ? {
               width: 'max-content',
               animation: `marquee ${(cards.length) * 3}s linear infinite`
             } : {}}
@@ -259,10 +272,12 @@ export default function App() {
                   onDrop={() => onDr(idx)}
                   onDragEnd={() => { setDragI(null); setOverI(null); }}
                   onClick={() => setSel(c)}
-                  whileHover={viewMode !== 1 ? { scale: 1.05, zIndex: 10 } : {}}
-                  whileTap={viewMode !== 1 ? { scale: 0.95 } : {}}
+                  whileHover={(!isExporting && viewMode !== 1) ? { scale: 1.05, zIndex: 10 } : {}}
+                  whileTap={(!isExporting && viewMode !== 1) ? { scale: 0.95 } : {}}
+                  animate={isExporting ? { scale: 1, zIndex: 1 } : undefined}
+                  transition={isExporting ? { duration: 0 } : undefined}
                   className={`relative aspect-square flex-shrink-0 flex flex-col items-center justify-end cursor-pointer overflow-hidden shadow-sm hover:shadow-xl transition-shadow rounded-none select-none
-                    ${viewMode === 1 ? 'w-[calc(100vw-32px)] max-w-5xl' : 'w-full'}
+                    ${(viewMode === 1 && !isExporting) ? 'w-[calc(100vw-32px)] max-w-5xl' : 'w-full'}
                   `}
                   style={{
                     background: c.color,
@@ -270,13 +285,15 @@ export default function App() {
                     outline: overI === idx ? "2px solid #1a1a1a" : "none",
                   }}
                 >
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] opacity-15 pointer-events-none z-0 crown-icon">
-                    <img
-                      src={crownSvg(tc)}
-                      alt=""
-                      className="w-[60%] min-w-[30px] max-w-[50px] mx-auto"
-                    />
-                  </div>
+                  {!SHOW_IMG.has(c.country) && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[55%] opacity-15 pointer-events-none z-0 crown-icon">
+                      <img
+                        src={crownSvg(tc)}
+                        alt=""
+                        className="w-[60%] min-w-[30px] max-w-[50px] mx-auto"
+                      />
+                    </div>
+                  )}
                   {SHOW_IMG.has(c.country) && c.hasImg && (
                     <div className="absolute inset-0 z-10 pointer-events-none">
                       <img
