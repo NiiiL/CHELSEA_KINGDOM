@@ -346,21 +346,19 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
             </button>
           </div>
 
-          {/* 右侧：生成口令 (强化点击属性) */}
-          {(!character.rarity || character.rarity === 'common') && (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                if (shareCode) {
-                  navigator.clipboard.writeText(shareCode);
-                  alert(`序列号已复制：${shareCode}`);
-                }
-              }}
-              className="px-8 py-3 border-1 border-blue-600 text-blue-600 text-sm font-bold hover:bg-blue-50 transition-colors tracking-widest cursor-pointer"
-            >
-              生成分享口令
-            </motion.button>
-          )}
+          {/* 右侧：生成口令 */}
+          {(!character.rarity || character.rarity === 'common') && <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (shareCode) {
+                navigator.clipboard.writeText(shareCode);
+                alert(`序列号已复制：${shareCode}`);
+              }
+            }}
+            className="w-full sm:w-auto px-8 py-3 border border-blue-600 text-blue-600 text-sm font-bold hover:bg-blue-50 transition-colors tracking-widest cursor-pointer"
+          >
+            生成分享口令
+          </motion.button>}
         </div>
       </main>
     </motion.div>
