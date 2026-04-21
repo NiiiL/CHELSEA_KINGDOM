@@ -174,9 +174,10 @@ export function StartScreen({
         {"CJONTHEBEAT".split('').map((char, index) => (
           <span
             key={index}
-            onClick={() => handleCharClick(char)}
-            // 修复：增大了 py 和 px 扩大手机端“点击热区”，并且不再依赖父级的 pointer-events-none
-            className="inline-block cursor-pointer transition-all duration-100 active:text-neutral-900 active:scale-150 md:hover:text-neutral-900 py-3 px-1.5 sm:py-2 sm:px-[3px]"
+            // 核心修复 1：将 onClick 替换为 onPointerDown，实现“按下即触发”，拒绝判定延迟
+            onPointerDown={() => handleCharClick(char)}
+            // 核心修复 2：加入 touch-manipulation 禁止双击放大，保证高频连击能 100% 录入
+            className="inline-block cursor-pointer transition-all duration-100 active:text-neutral-900 active:scale-150 md:hover:text-neutral-900 py-3 px-1.5 sm:py-2 sm:px-[3px] touch-manipulation"
           >
             {char}
           </span>
