@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { toPng } from 'html-to-image';
 import { Character, Dimensions } from '../data/characters';
@@ -22,15 +22,25 @@ const dimInfo: Record<keyof Dimensions, { name: string; desc: string }> = {
 };
 
 const SPECIAL_STATS: Record<string, Dimensions> = {
+  // 兰帕德 (假设 ID 是 lampard)
   'lampard': { AGG: 8, MEN: 8, HUS: 8, TEC: 8, CLU: 8, PRE: 8, DUR: 99, FLA: 8 },
+  // 阿扎尔 (假设 ID 是 hazard)
   'hazard': { AGG: 99, MEN: 10, HUS: 1, TEC: 99, CLU: 10, PRE: 10, DUR: 10, FLA: 10 },
+  // 科斯塔 (假设 ID 是 costa)
   'costa': { AGG: 99, MEN: 10, HUS: 7, TEC: 7, CLU: 10, PRE: 8, DUR: 8, FLA: 10 },
+  // 帕尔默 (假设 ID 是 palmer)
   'palmer': { AGG: 7, MEN: 8, HUS: 6, TEC: 8, CLU: 10, PRE: 99, DUR: 8, FLA: 10 },
+  // 坎特 (假设 ID 是 kante)
   'kante': { AGG: 7, MEN: 10, HUS: 99, TEC: 7, CLU: 7, PRE: 10, DUR: 10, FLA: 7 },
+  // 维尔纳 (假设 ID 是 werner)
   'werner': { AGG: 8, MEN: 99, HUS: 10, TEC: 1, CLU: 5, PRE: 3, DUR: 9, FLA: 10 },
+  // 特朗普 (假设 ID 是 trump)
   'trump': { AGG: 99, MEN: 99, HUS: 99, TEC: 99, CLU: 99, PRE: 99, DUR: 99, FLA: 99 },
+  // 阿布 (假设 ID 是 roman)
   'abramovich': { AGG: 100, MEN: 100, HUS: 100, TEC: 100, CLU: 100, PRE: 100, DUR: 100, FLA: 100 },
+  // 伊万诺维奇 (假设 ID 是 ivanovic)
   'ivanovic': { AGG: 10, MEN: 8, HUS: 7, TEC: 6, CLU: 99, PRE: 10, DUR: 8, FLA: 7 },
+  // 卢卡库 (假设 ID 是 lukaku)
   'lukaku': { AGG: 9, MEN: 1, HUS: 3, TEC: 8, CLU: 5, PRE: 4, DUR: 6, FLA: 99 },
 };
 
@@ -38,70 +48,71 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
   const resultRef = useRef<HTMLDivElement>(null);
   const [authorOpen, setAuthorOpen] = useState(true);
 
-  // 核心修复函数：在截图前将图片转为 Base64，确保在真机环境下 100% 渲染
-  const convertImageToBase64 = async (img: HTMLImageElement) => {
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.drawImage(img, 0, 0);
-      return canvas.toDataURL("image/png");
-    } catch (e) {
-      console.warn("Base64 conversion failed", e);
-      return null;
-    }
-  };
+  // 极简修复：页面加载时直接把图片预处理为 Base64，彻底避开手机截图的所有网络限制
+  const [imageSrc, setImageSrc] = useState(`/Image/${character.code}.png`);
+
+  useEffect(() => {
+    let isMounted = true; // 防止组件卸载后还在 set 状态
+
+    const loadBase64 = async () => {
+      try {
+        const res = await fetch(`/Image/${character.code}.png`);
+        if (!res.ok) throw new Error('Fetch failed');
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (isMounted && reader.result) {
+            setImageSrc(reader.result as string);
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch (e) {
+        console.warn('Base64 预加载失败，降级使用相对路径', e);
+      }
+    };
+
+    loadBase64();
+    return () => { isMounted = false; };
+  }, [character.code]);
 
   const handleShare = async () => {
     if (!resultRef.current) return;
     try {
       const el = resultRef.current;
-      const imgEl = el.querySelector('img') as HTMLImageElement | null;
 
-      let originalSrc: string | null = null;
+      // 恢复你原本完美的尺寸捕获逻辑
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
 
-      // 1. 真机修复逻辑：在截图发生的一瞬间，将图片转化为 Base64
-      if (imgEl && imgEl.complete) {
-        originalSrc = imgEl.src;
-        const b64 = await convertImageToBase64(imgEl);
-        if (b64) {
-          imgEl.src = b64;
-          // 极微小的延迟，等待浏览器更新内部渲染状态
-          await new Promise(r => setTimeout(r, 50));
-        }
-      }
-
-      // 2. 执行截图
-      const dataUrl = await toPng(el, {
-        cacheBust: true,
+      const exportOptions = {
+        // 移除 cacheBust: true，防止由于加了时间戳后缀导致静态资源报 404
         quality: 1,
         backgroundColor: '#fafafa',
+        width,
+        height,
         pixelRatio: 2,
         style: {
-          transform: 'none', // 移除缩放可能导致的偏移
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
           margin: '0',
-          padding: '0'
+          width: `${width}px`,
+          height: `${height}px`,
         },
-      });
+      };
 
-      // 3. 还原图片，避免长驻 Base64 消耗内存
-      if (imgEl && originalSrc) {
-        imgEl.src = originalSrc;
-      }
+      // 核心修复：连续调用两次 toPng，第一遍作为预热强制浏览器解码并缓存图像，第二遍才是真正的截图。
+      await toPng(el, exportOptions);
+      const dataUrl = await toPng(el, exportOptions);
 
       const link = document.createElement('a');
       link.download = `SBTI-${character.code}-${character.prototype}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error('保存报告失败:', err);
-      alert('保存失败，请尝试长按截图');
+      console.error('Failed to generate image', err);
+      alert('生成图片失败，请稍后再试');
     }
   };
-
-  const imagePath = `/Image/${character.code}.png`;
 
   return (
     <motion.div
@@ -114,7 +125,7 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
           'repeating-linear-gradient(-45deg, rgba(0,0,0,0.015) 0, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 12px)',
       }}
     >
-      <main ref={resultRef} className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex flex-col gap-2 bg-[#fafafa]">
+      <main ref={resultRef} className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex flex-col gap-2">
 
         {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="relative bg-white border border-neutral-200/60 shadow-sm">
@@ -125,31 +136,36 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
           <div className="absolute inset-0 bg-gradient-to-br from-neutral-100 via-transparent to-neutral-100 opacity-50 pointer-events-none" />
 
           <div className="relative flex flex-col items-center text-center p-8 sm:p-12">
-            <div className="relative w-full aspect-square max-w-[580px] mb-8 sm:mb-12 z-10 mx-auto">
+            {/* Character Image */}
+            <div className="relative w-full aspect-square max-w-[580px] sm:max-w-[580px] mb-8 sm:mb-12 z-10 mx-auto">
               <img
-                src={imagePath}
+                src={imageSrc} // 使用上方预加载好的 base64
                 alt={character.prototype}
-                // 必须保留 crossOrigin，否则真机 Canvas 转换会报错
-                crossOrigin="anonymous"
+                crossOrigin="anonymous" // 明确跨域策略
+                decoding="sync" // 强制同步解码，确保截图时像素已就绪
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://via.placeholder.com/600x600/f8f9fa/adb5bd?text=' + character.code;
                 }}
                 className="w-full h-full object-contain pointer-events-none"
+                style={{ minHeight: '100%' }} // 防止外层 aspect-square 在 SVG 转换时发生高度塌陷
               />
             </div>
 
+            {/* Names */}
             <div className="space-y-2 relative z-10 w-full mb-10">
               <p className="text-sm font-bold text-neutral-400 uppercase tracking-[0.3em]">你的人格类型是</p>
               <h2 className="text-4xl sm:text-8xl font-regular tracking-tight text-neutral-900 mt-2">
                 {character.nickname}
               </h2>
+              {/* Prototype 文字：去掉 mb-10，改为极小的 mb-1 */}
               <div className="text-base sm:text-xl text-neutral-500 font-normal tracking-widest uppercase mt-1 mb-4">
                 {character.prototype}
               </div>
 
+              {/* Badge 区域：去掉 mb-6，直接紧贴在上面文字下方 */}
               {(character.rarity === 'inner' || character.rarity === 'god') && (
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center"> {/* 这里的 mb-4 决定了它离下方分割线的距离 */}
                   {character.rarity === 'inner' && (
                     <div className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-red-200/50 bg-red-50/50 rounded-sm">
                       <div className="w-1 h-1 rounded-full bg-red-400" />
@@ -187,13 +203,13 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
           </h3>
           <div className="text-[20px] font-regular text-neutral-800 leading-loose space-y-4">
             <p>{character.description}</p>
-            <p className="text-bolditalic text-blue-900 border-t border-neutral-50 pt-4 font-medium italic">
+            <p className="text-bolditalic text-blue-900 border-t border-neutral-50 pt-4">
               「{character.tagline}」
             </p>
           </div>
         </section>
 
-        {/* ── 维度标签 ────────────────────────────────────────── */}
+        {/* ── 八维度评分 ────────────────────────────────────────── */}
         <section className="relative bg-white border border-neutral-200/60 p-6 sm:p-8 md:p-10">
           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 z-10" />
           <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400 z-10" />
@@ -232,8 +248,15 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
 
           <div className="space-y-4">
             {(Object.keys(dimInfo) as (keyof Dimensions)[]).map(key => {
-              let val = SPECIAL_STATS[character.id]?.[key] ?? character.dimensions[key] ?? 0;
+              // 1. 获取原始数据，并尝试从 SPECIAL_STATS 中覆盖
+              let val = character.dimensions[key] || 0;
+              if (SPECIAL_STATS[character.id]) {
+                val = SPECIAL_STATS[character.id][key];
+              }
+
+              // 2. 计算视觉进度条宽度（最高 100%）
               const barWidth = Math.min((val / 10) * 100, 100);
+              // 3. 判断是否爆表（超过 10）
               const isOverLimit = val > 10;
 
               return (
@@ -248,10 +271,11 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
                       animate={{ width: `${barWidth}%` }}
                       transition={{ duration: 1, ease: "easeOut" }}
                       className={`h-full rounded-sm relative ${isOverLimit
-                        ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500'
-                        : 'bg-blue-500'
+                        ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500' // 爆表依然是渐变
+                        : 'bg-blue-500' // 其他所有情况，无论稀有度，全部变回蓝色
                         }`}
                     >
+                      {/* 爆表光效：呼吸感的白色遮罩层 */}
                       {isOverLimit && (
                         <motion.div
                           animate={{ opacity: [0, 0.6, 0] }}
@@ -262,6 +286,7 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
                     </motion.div>
                   </div>
 
+                  {/* 4. 数字显示：爆表则显示红色脉冲动画 */}
                   <span className={`w-8 font-bold text-xs ${isOverLimit ? 'text-red-600 animate-pulse' : 'text-blue-900'
                     }`}>
                     {val}
@@ -319,8 +344,9 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
           </h3>
           <p className="text-[16px] text-neutral-500 leading-relaxed">
             本测试仅供娱乐，别拿它去相亲，也别指望靠它
+            {/* 修改点：将“招魂”包裹在 span 中 */}
             <span
-              onClick={onIvanovicTrigger}
+              onClick={onIvanovicTrigger} // 需要在 props 中新增这个回调
               className="underline decoration-dotted cursor-help hover:text-red-500 transition-colors"
             >
               招魂
@@ -331,6 +357,8 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
 
         {/* ── 操作按钮组 ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 pb-12 w-full relative z-50">
+
+          {/* 左侧：重新测试 & 保存报告 */}
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button
               onClick={onRetry}
@@ -347,6 +375,7 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
             </button>
           </div>
 
+          {/* 右侧：生成口令 */}
           {(!character.rarity || character.rarity === 'common') && <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => {
