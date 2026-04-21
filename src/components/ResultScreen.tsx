@@ -48,41 +48,60 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
   const [authorOpen, setAuthorOpen] = useState(true);
 
   const handleShare = async () => {
-    if (resultRef.current) {
-      try {
-        const el = resultRef.current;
+    if (!resultRef.current) return;
+    try {
+      const el = resultRef.current;
+      const imgEl = el.querySelector('img') as HTMLImageElement | null;
 
-        // 🌟 1. 精准获取元素在当前屏幕上的真实渲染尺寸
-        const width = el.offsetWidth;
-        const height = el.offsetHeight;
-
-        const dataUrl = await toPng(el, {
-          cacheBust: true,
-          quality: 1, // 拉满画质
-          backgroundColor: '#fafafa',
-
-          // 🌟 2. 强制指定截图画布的尺寸
-          width: width,
-          height: height,
-          pixelRatio: 2, // 🌟 3. 强制2倍像素渲染（极其关键！解决移动端/高清屏右侧截断的必杀技）
-
-          style: {
-            // 🌟 4. 重置可能导致偏移的样式，并强行把待截图的 DOM 尺寸锁死
-            transform: 'scale(1)',
-            transformOrigin: 'top left',
-            margin: '0',
-            width: `${width}px`,
-            height: `${height}px`,
-          }
-        });
-
-        const link = document.createElement('a');
-        link.download = `SBTI-${character.code}-${character.prototype}.png`;
-        link.href = dataUrl;
-        link.click();
-      } catch (err) {
-        console.error('Failed to generate image', err);
+      // 移动端 html-to-image 无法通过 XHR 加载同源图片，需预转 base64
+      let originalSrc: string | null = null;
+      if (imgEl) {
+        originalSrc = imgEl.src;
+        try {
+          const res = await fetch(imgEl.src);
+          const blob = await res.blob();
+          const b64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          imgEl.src = b64;
+          // 等待新 src 渲染完成
+          await new Promise(r => setTimeout(r, 100));
+        } catch {
+          // fetch 失败则保留原始 src，继续尝试截图
+        }
       }
+
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
+
+      const dataUrl = await toPng(el, {
+        cacheBust: true,
+        quality: 1,
+        backgroundColor: '#fafafa',
+        width,
+        height,
+        pixelRatio: 2,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          margin: '0',
+          width: `${width}px`,
+          height: `${height}px`,
+        },
+      });
+
+      // 还原原始 src
+      if (imgEl && originalSrc) imgEl.src = originalSrc;
+
+      const link = document.createElement('a');
+      link.download = `SBTI-${character.code}-${character.prototype}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to generate image', err);
     }
   };
 
