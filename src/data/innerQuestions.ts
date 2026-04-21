@@ -54,6 +54,48 @@ const palmerData: InnerCharacterData = {
     { type: 'choice', text: '帕尔默是切尔西队史首位在21岁以下单季进球超过多少个的球员？', options: ['20个', '15个', '25个'], correctIndex: 0 },
     { type: 'choice', text: '在23-24赛季，帕尔默在所有主罚的点球中保持了100%的命中率，请问他一共罚入了多少个点球？', options: ['9个', '6个', '12个'], correctIndex: 0 },
     { type: 'choice', text: '帕尔默与哪位足球博主有缘？', options: ['王楚淇', '小王闯广州', '橙色闪电'], correctIndex: 0 },
+    {
+      type: 'choice',
+      text: '帕尔默在24-25赛季对阵布莱顿时，创造了英超历史上第一个什么纪录？',
+      options: ['半场上演大四喜', '单场5次助攻', '开场5分钟梅开二度'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '帕尔默在2024年欧洲杯决赛对阵西班牙时，他的进球方式是？',
+      options: ['禁区外远射贴地斩', '头球破门', '点球'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '在 23-24 赛季对阵老东家曼城的经典 4:4 大战中，帕尔默在第几分钟罚入了绝平点球？',
+      options: ['第 90+5 分钟', '第 85 分钟', '第 90+10 分钟'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '帕尔默在场上不仅能进球，还拥有极强的策动能力，他在 23-24 赛季的英超助攻数是多少？',
+      options: ['11 次', '15 次', '8 次'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '帕尔默从小就是哪支球队的忠实球迷（虽然他曾效力于该队的同城死敌）？',
+      options: ['利物浦', '曼联', '切尔西'],
+      correctIndex: 1
+    },
+    {
+      type: 'choice',
+      text: '当帕尔默对阵布莱顿上演“大四喜”时，这四个进球一共用了多少分钟？',
+      options: ['20 分钟', '35 分钟', '10 分钟'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '帕尔默的庆祝动作 "Cold" 走红后，耐克曾专门为他推出过一款限定配色球鞋，其主色调是？',
+      options: ['冰蓝色', '纯白色', '切尔西蓝'],
+      correctIndex: 0
+    },
   ],
   finalQuestion: {
     type: 'text',
@@ -120,6 +162,42 @@ const costaData: InnerCharacterData = {
     { type: 'choice', text: '科斯塔在切尔西穿几号？', options: ['19号', '9号', '18号'], correctIndex: 0 },
     { type: 'choice', text: '“短信门”的主帅是谁？', options: ['孔蒂', '穆里尼奥', '图赫尔'], correctIndex: 0 },
     { type: 'choice', text: '科斯塔在切尔西拿到了几次英超冠军？', options: ['2次', '1次', '3次'], correctIndex: 0 },
+    {
+      type: 'choice',
+      text: '科斯塔在场上除了进球，最擅长的事情是？',
+      options: ['激怒对方后卫', '优雅地带球', '禁区外远射'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '哪位阿森纳后卫曾在对阵切尔西时被科斯塔“极限一换一”红牌罚下？',
+      options: ['加布里埃尔', '科斯切尔尼', '默特萨克'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '2016-17赛季夺冠后，科斯塔在更衣室试图用什么东西“攻击”孔蒂？',
+      options: ['灭火器', '大香槟', '战术板'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '科斯塔虽然代表西班牙国家队出战，但他其实出生在哪个国家？',
+      options: ['巴西', '葡萄牙', '阿根廷'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '科斯塔在切尔西的最后一个进球是在哪场比赛中打入的？',
+      options: ['足总杯决赛对阵阿森纳', '英超对阵桑德兰', '欧冠对阵巴黎'],
+      correctIndex: 0
+    },
+    {
+      type: 'choice',
+      text: '当科斯塔在场边热身却发现没有换人名额时，他曾对孔蒂做过什么？',
+      options: ['扔背心', '直接回更衣室', '疯狂鼓掌'],
+      correctIndex: 0
+    },
   ],
   finalQuestion: {
     type: 'text',
@@ -138,6 +216,10 @@ const lampardData: InnerCharacterData = {
     { type: 'choice', text: '兰帕德作为球员获得的最高金球奖排名是？', options: ['第2名（2005年）', '第3名', '第1名'], correctIndex: 0 },
     { type: 'choice', text: '兰帕德连续多少场英超首发出战创下了当时纪录？', options: ['164场', '110场', '200场'], correctIndex: 0 },
     { type: 'choice', text: '兰帕德在对阵拜仁的欧冠决赛中，点球大战排在第几个？', options: ['第3个', '第1个', '第5个'], correctIndex: 0 },
+    { type: 'choice', text: '兰帕德切尔西生涯唯一一次单场”大四喜”（进4球）是对阵哪支球队？', options: ['阿斯顿维拉', '德比郡', '曼城'], correctIndex: 0 },
+    { type: 'choice', text: '兰帕德在切尔西效力期间，身披过几个号码？', options: ['1个 (8号)', '2个 (8号/11号)', '3个'], correctIndex: 0 },
+    { type: 'choice', text: '兰帕德在哪一年正式超越坦布林，成为切尔西队史第一射手？', options: ['2012年', '2013年', '2014年'], correctIndex: 1 },
+    { type: 'choice', text: '2012年欧冠决赛，特里停赛，切尔西场上的队长是谁？', options: ['德罗巴', '切赫', '兰帕德'], correctIndex: 2 },
   ],
   finalQuestion: {
     type: 'text',
@@ -157,7 +239,12 @@ const ivanovicData: InnerCharacterData = {
     { type: 'choice', text: "2013年对阵利物浦，你遭遇了震惊足坛的“咬人事件”，当时的肇事者是？", options: ["杰拉德", "苏亚雷斯", "斯特林", "卡拉格"], correctIndex: 1 },
     { type: 'choice', text: "穆里尼奥曾对你有着极高的评价，他形容你是：", options: ["球队灵魂", "两腿之间有钢铁的人", "右路大闸", "塞尔维亚之魂"], correctIndex: 1 },
     { type: 'choice', text: "2012年欧冠1/8决赛逆转那不勒斯的比赛中，绝杀进球者是谁？", options: ["德罗巴", "兰帕德", "特里", "伊万诺维奇"], correctIndex: 3 },
-    { type: 'choice', text: "在加盟切尔西之前，你效力于哪支球队？", options: ["莫斯科火车头", "贝尔格莱德红星", "泽尼特", "顿涅茨克矿工"], correctIndex: 0 }
+    { type: 'choice', text: "在加盟切尔西之前，你效力于哪支球队？", options: ["莫斯科火车头", "贝尔格莱德红星", "泽尼特", "顿涅茨克矿工"], correctIndex: 0 },
+    { type: 'choice', text: "你在切尔西效力期间最常身披的是几号球衣？", options: ["2号", "27号", "28号", "6号"], correctIndex: 0 },
+    { type: 'choice', text: "2009年欧冠1/4决赛，你在安菲尔德“梅开二度”击败利物浦，那两个进球的方式是？", options: ["都是头球", "一个头球一个抽射", "都是禁区外远射", "一个头球一个补射"], correctIndex: 0 },
+    { type: 'choice', text: "在切尔西效力期间，你一共获得过几次英超联赛冠军？", options: ["1次", "2次", "3次", "4次"], correctIndex: 2 },
+    { type: 'choice', text: "你曾在2014-15赛季入选了PFA年度最佳阵容，那一年的切尔西主帅是？", options: ["安切洛蒂", "迪马特奥", "贝尼特斯", "穆里尼奥"], correctIndex: 3 },
+    { type: 'choice', text: "除了右后卫，你在球场上最常胜任的另一个位置是？", options: ["后腰", "中后卫", "左后卫", "影子前锋"], correctIndex: 1 },
   ],
   finalQuestion: {
     type: 'text',
@@ -172,48 +259,16 @@ const ivanovicData: InnerCharacterData = {
 const lukakuData: InnerCharacterData = {
   characterId: 'lukaku',
   pool: [
-    {
-      type: 'choice',
-      text: '当卢卡库在禁区前沿准备接一个毫无难度的传球时，球通常会飞向哪里？',
-      options: ['稳稳停在脚下', '反弹至五米开外送给对手反击', '直接漏给门将'],
-      correctIndex: 1
-    },
-    {
-      type: 'choice',
-      text: '在切尔西时期，卢卡库曾在接受意大利天空体育采访时表达了什么意愿导致舆论爆炸？',
-      options: ['想回国米', '想涨工资', '想当队长'],
-      correctIndex: 0
-    },
-    {
-      type: 'choice',
-      text: '卢卡库在场上鼓励队友最标志性的动作是？',
-      options: ['愤怒摊手', '原地伸出大拇指并点赞', '抱头痛哭'],
-      correctIndex: 1
-    },
-    {
-      type: 'choice',
-      text: '以下哪个外号通常被用来形容卢卡库在禁区内防守队友射门的奇特现象？',
-      options: ['禁区之王', '杵桩王', '重炮手'],
-      correctIndex: 1
-    },
-    {
-      type: 'choice',
-      text: '卢卡库的体重在巅峰时期大约是多少？',
-      options: ['约100KG以上', '约80KG', '约120KG'],
-      correctIndex: 0
-    },
-    {
-      type: 'choice',
-      text: '2017年加盟切尔西（第二次）时的转会费大约是？',
-      options: ['9750万英镑', '5000万英镑', '3200万英镑'],
-      correctIndex: 0
-    },
-    {
-      type: 'choice',
-      text: '卢卡库在切尔西进球后最常用的庆祝动作（除了点赞）是？',
-      options: ['闭嘴手势', '滑跪', '翻跟头'],
-      correctIndex: 0
-    },
+    { type: 'choice', text: '当卢卡库在禁区前沿准备接一个毫无难度的传球时，球通常会飞向哪里？', options: ['稳稳停在脚下', '反弹至五米开外送给对手反击', '直接漏给门将'], correctIndex: 1 },
+    { type: 'choice', text: '在切尔西时期，卢卡库曾在接受意大利天空体育采访时表达了什么意愿导致舆论爆炸？', options: ['想回国米', '想涨工资', '想当队长'], correctIndex: 0 },
+    { type: 'choice', text: '卢卡库在场上鼓励队友最标志性的动作是？', options: ['愤怒摊手', '原地伸出大拇指并点赞', '抱头痛哭'], correctIndex: 1 },
+    { type: 'choice', text: '以下哪个外号通常被用来形容卢卡库在禁区内防守队友射门的奇特现象？', options: ['禁区之王', '杵桩王', '重炮手'], correctIndex: 1 },
+    { type: 'choice', text: '卢卡库在切尔西第二次效力时，他穿的是几号球衣？', options: ['18号', '9号', '29号'], correctIndex: 1 },
+    { type: 'choice', text: '卢卡库曾在接受采访时自称是谁的“接班人”？', options: ['德罗巴', '克林斯曼', '亨利'], correctIndex: 0 },
+    { type: 'choice', text: '卢卡库在 2021 年回归切尔西的首秀对阵阿森纳时，他的表现如何？', options: ['进球并展现统治力', '全场隐身', '因伤提前退场'], correctIndex: 0 },
+    { type: 'choice', text: '卢卡库的体重在巅峰时期大约是多少？', options: ['约100KG以上', '约80KG', '约120KG'], correctIndex: 0 },
+    { type: 'choice', text: '2017年加盟切尔西（第二次）时的转会费大约是？', options: ['9750万英镑', '5000万英镑', '3200万英镑'], correctIndex: 0 },
+    { type: 'choice', text: '卢卡库在切尔西进球后最常用的庆祝动作（除了点赞）是？', options: ['闭嘴手势', '滑跪', '翻跟头'], correctIndex: 0 },
   ],
   finalQuestion: {
     type: 'text',
