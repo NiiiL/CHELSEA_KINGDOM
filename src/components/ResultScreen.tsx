@@ -53,24 +53,25 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
       const el = resultRef.current;
       const imgEl = el.querySelector('img') as HTMLImageElement | null;
 
-      // 移动端 html-to-image 无法通过 XHR 加载同源图片，需预转 base64
+      // 移动端 html-to-image 内部 XHR 无法加载同源图片。
+      // 直接用 canvas 读取已渲染的像素，转成 base64 后替换 src，不依赖网络请求。
       let originalSrc: string | null = null;
-      if (imgEl) {
+      if (imgEl && imgEl.complete && imgEl.naturalWidth > 0) {
         originalSrc = imgEl.src;
         try {
-          const res = await fetch(imgEl.src);
-          const blob = await res.blob();
-          const b64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
+          const canvas = document.createElement('canvas');
+          canvas.width = imgEl.naturalWidth;
+          canvas.height = imgEl.naturalHeight;
+          canvas.getContext('2d')?.drawImage(imgEl, 0, 0);
+          const b64 = canvas.toDataURL('image/png');
+          await new Promise<void>((resolve) => {
+            imgEl.onload = () => resolve();
+            imgEl.src = b64;
+            // data URL 有时同步完成，不会触发 onload
+            if (imgEl.complete) resolve();
           });
-          imgEl.src = b64;
-          // 等待新 src 渲染完成
-          await new Promise(r => setTimeout(r, 100));
         } catch {
-          // fetch 失败则保留原始 src，继续尝试截图
+          // canvas 读取失败（不应发生于同源图片），保留原 src 继续截图
         }
       }
 
@@ -93,7 +94,6 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
         },
       });
 
-      // 还原原始 src
       if (imgEl && originalSrc) imgEl.src = originalSrc;
 
       const link = document.createElement('a');
