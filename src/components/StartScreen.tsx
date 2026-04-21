@@ -165,16 +165,18 @@ export function StartScreen({
       </div>
 
       {/* ── 3. 署名彩蛋区 (仅 CJONTHEBEAT 可点) ── */}
-      <div className="relative z-10 w-full pb-32 pt-6 text-center text-[10px] text-neutral-400 tracking-[0.2em] select-none pointer-events-none">
-        {/* 静态文字部分 */}
-        <span className="opacity-80 mr-2">MADE BY</span>
+      <div className="relative z-50 w-full pb-32 pt-6 text-center text-[10px] text-neutral-400 tracking-[0.2em] select-none">
+
+        {/* 静态文字部分：独立禁用点击，防止误触 */}
+        <span className="opacity-80 mr-2 pointer-events-none">MADE BY</span>
 
         {/* 交互字母部分 */}
         {"CJONTHEBEAT".split('').map((char, index) => (
           <span
             key={index}
             onClick={() => handleCharClick(char)}
-            className="inline-block cursor-pointer pointer-events-auto transition-all duration-100 active:text-neutral-900 active:scale-150 md:hover:text-neutral-900 py-2 px-[3px]"
+            // 修复：增大了 py 和 px 扩大手机端“点击热区”，并且不再依赖父级的 pointer-events-none
+            className="inline-block cursor-pointer transition-all duration-100 active:text-neutral-900 active:scale-150 md:hover:text-neutral-900 py-3 px-1.5 sm:py-2 sm:px-[3px]"
           >
             {char}
           </span>
