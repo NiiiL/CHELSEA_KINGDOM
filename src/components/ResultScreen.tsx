@@ -38,46 +38,66 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
   const resultRef = useRef<HTMLDivElement>(null);
   const [authorOpen, setAuthorOpen] = useState(true);
 
+  // 核心修复函数：在截图前将图片转为 Base64，确保在真机环境下 100% 渲染
+  const convertImageToBase64 = async (img: HTMLImageElement) => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      return canvas.toDataURL("image/png");
+    } catch (e) {
+      console.warn("Base64 conversion failed", e);
+      return null;
+    }
+  };
+
   const handleShare = async () => {
     if (!resultRef.current) return;
-
     try {
       const el = resultRef.current;
-      const img = el.querySelector('img');
+      const imgEl = el.querySelector('img') as HTMLImageElement | null;
 
-      // 1. 移动端真机核心：截图前确保图片解码完成
-      if (img) {
-        if (!img.complete) {
-          await new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-          });
+      let originalSrc: string | null = null;
+
+      // 1. 真机修复逻辑：在截图发生的一瞬间，将图片转化为 Base64
+      if (imgEl && imgEl.complete) {
+        originalSrc = imgEl.src;
+        const b64 = await convertImageToBase64(imgEl);
+        if (b64) {
+          imgEl.src = b64;
+          // 极微小的延迟，等待浏览器更新内部渲染状态
+          await new Promise(r => setTimeout(r, 50));
         }
-        // 给浏览器解码像素的一点缓冲时间
-        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
-      // 2. 调用导出，使用标准 Options
+      // 2. 执行截图
       const dataUrl = await toPng(el, {
-        cacheBust: true,      // 强制刷新缓存
+        cacheBust: true,
+        quality: 1,
         backgroundColor: '#fafafa',
-        pixelRatio: 2,        // 2倍图足够清晰且不易触发手机内存溢出
-        skipFonts: false,
+        pixelRatio: 2,
         style: {
-          transform: 'none',
+          transform: 'none', // 移除缩放可能导致的偏移
           margin: '0',
-          padding: '0',
+          padding: '0'
         },
       });
 
-      // 3. 触发下载
+      // 3. 还原图片，避免长驻 Base64 消耗内存
+      if (imgEl && originalSrc) {
+        imgEl.src = originalSrc;
+      }
+
       const link = document.createElement('a');
-      link.download = `SBTI-${character.code}.png`;
+      link.download = `SBTI-${character.code}-${character.prototype}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error('Failed to generate image', err);
-      alert('保存失败，请尝试长按屏幕截图分享');
+      console.error('保存报告失败:', err);
+      alert('保存失败，请尝试长按截图');
     }
   };
 
@@ -87,7 +107,7 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen font-light text-neutral-800 antialiased"
+      className="min-h-screen font-light text-neutral-800 antialiased selection:bg-neutral-200 selection:text-black"
       style={{
         backgroundColor: '#fafafa',
         backgroundImage:
@@ -95,25 +115,27 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
       }}
     >
       <main ref={resultRef} className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex flex-col gap-2 bg-[#fafafa]">
+
         {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="relative bg-white border border-neutral-200/60 shadow-sm">
           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 z-10" />
           <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400 z-10" />
           <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-400 z-10" />
           <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400 z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-100 via-transparent to-neutral-100 opacity-50 pointer-events-none" />
 
           <div className="relative flex flex-col items-center text-center p-8 sm:p-12">
             <div className="relative w-full aspect-square max-w-[580px] mb-8 sm:mb-12 z-10 mx-auto">
               <img
                 src={imagePath}
                 alt={character.prototype}
-                // 关键点：跨域声明，必须配合后端/静态服务器的 CORS 头
+                // 必须保留 crossOrigin，否则真机 Canvas 转换会报错
                 crossOrigin="anonymous"
-                className="w-full h-full object-contain pointer-events-none"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
                     'https://via.placeholder.com/600x600/f8f9fa/adb5bd?text=' + character.code;
                 }}
+                className="w-full h-full object-contain pointer-events-none"
               />
             </div>
 
@@ -128,71 +150,215 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
 
               {(character.rarity === 'inner' || character.rarity === 'god') && (
                 <div className="flex flex-col items-center">
-                  <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 border rounded-sm ${character.rarity === 'inner' ? 'border-red-200/50 bg-red-50/50' : 'border-amber-200/50 bg-amber-50/50'
-                    }`}>
-                    <div className={`w-1 h-1 rounded-full ${character.rarity === 'inner' ? 'bg-red-400' : 'bg-amber-400'}`} />
-                    <span className={`text-[10px] font-medium ${character.rarity === 'inner' ? 'text-red-700' : 'text-amber-700'}`}>
-                      {character.rarity === 'inner' ? 'SS 级 · 模式解锁' : '神级彩蛋 · 隐藏解锁'}
-                    </span>
-                  </div>
+                  {character.rarity === 'inner' && (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-red-200/50 bg-red-50/50 rounded-sm">
+                      <div className="w-1 h-1 rounded-full bg-red-400" />
+                      <span className="text-[10px] text-red-700 font-medium">SS 级 · 模式解锁</span>
+                    </div>
+                  )}
+                  {character.rarity === 'god' && (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 border border-amber-200/50 bg-amber-50/50 rounded-sm">
+                      <div className="w-1 h-1 rounded-full bg-amber-400" />
+                      <span className="text-[10px] text-amber-700 font-medium">神级彩蛋 · 隐藏解锁</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            <p className="text-[16px] text-neutral-500 leading-tight max-w-xl mx-auto border-t border-neutral-100 pt-4">
+            <p className="text-[16px] text-neutral-500 leading-tight max-w-xl mx-auto relative z-10 border-t border-neutral-100 pt-4">
               {character.prototype} 的精神内核正在你的潜意识中共振。
             </p>
           </div>
         </section>
 
-        {/* ── 解读/标签/数据面板等（保持你原有的精美样式） ── */}
-        <section className="relative bg-white border border-neutral-200/60 p-6 md:p-10">
-          <h3 className="text-base font-bold text-neutral-900 mb-6 flex items-center gap-2">解读该人格</h3>
+        {/* ── 解读 ─────────────────────────────────────────────── */}
+        <section className="relative bg-white border border-neutral-200/60 p-6 sm:p-8 md:p-10">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-400" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400" />
+
+          <h3 className="text-base font-bold text-neutral-900 mb-6 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-400">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+            该人格的简单解读
+          </h3>
           <div className="text-[20px] font-regular text-neutral-800 leading-loose space-y-4">
             <p>{character.description}</p>
-            <p className="text-blue-900 border-t border-neutral-50 pt-4 font-medium italic">「{character.tagline}」</p>
+            <p className="text-bolditalic text-blue-900 border-t border-neutral-50 pt-4 font-medium italic">
+              「{character.tagline}」
+            </p>
           </div>
         </section>
 
-        <section className="relative bg-white border border-neutral-200/60 p-6 md:p-10">
-          <h3 className="text-base font-bold text-neutral-900 mb-1">维度标签</h3>
+        {/* ── 维度标签 ────────────────────────────────────────── */}
+        <section className="relative bg-white border border-neutral-200/60 p-6 sm:p-8 md:p-10">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 z-10" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400 z-10" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-400 z-10" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400 z-10" />
+
+          <h3 className="text-base font-bold text-neutral-900 mb-1 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-400">
+              <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M12 8v8" /><path d="M8 12h8" />
+            </svg>
+            维度标签
+          </h3>
+
           <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-neutral-50">
             {character.tags.map((tag) => (
-              <span key={tag} className="text-[18px] text-neutral-900 border border-neutral-300/80 px-3 py-1 rounded-sm">#{tag}</span>
+              <span key={tag} className="text-[18px] text-neutral-900 border border-neutral-300/80 px-3 py-1 rounded-sm">
+                #{tag}
+              </span>
             ))}
           </div>
         </section>
 
+        {/* ── 战术数据面板 ──────────────────────────────────────── */}
         <section className="relative bg-white border border-blue-900/10 p-6 md:p-8 mt-2">
-          <h3 className="text-base font-bold text-blue-900 mb-6 flex items-center gap-2">战术数据面板</h3>
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-blue-900/30" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-blue-900/30" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-blue-900/30" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-blue-900/30" />
+
+          <h3 className="text-base font-bold text-blue-900 mb-6 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M18 20V10" /><path d="M12 20V4" /><path d="M6 20v-6" />
+            </svg>
+            战术数据面板 (Match Stats)
+          </h3>
+
           <div className="space-y-4">
             {(Object.keys(dimInfo) as (keyof Dimensions)[]).map(key => {
-              const val = SPECIAL_STATS[character.id]?.[key] ?? character.dimensions[key] ?? 0;
+              let val = SPECIAL_STATS[character.id]?.[key] ?? character.dimensions[key] ?? 0;
               const barWidth = Math.min((val / 10) * 100, 100);
               const isOverLimit = val > 10;
+
               return (
                 <div key={key} className="flex items-center gap-4 text-sm">
-                  <span className="w-24 text-right text-blue-900/70 font-medium text-xs">{dimInfo[key].name}</span>
+                  <span className="w-24 text-right text-blue-900/70 font-medium text-xs">
+                    {dimInfo[key].name}
+                  </span>
+
                   <div className="flex-1 h-2.5 bg-neutral-200/50 rounded-sm overflow-hidden relative">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${barWidth}%` }}
-                      className={`h-full rounded-sm ${isOverLimit ? 'bg-gradient-to-r from-yellow-400 to-red-500' : 'bg-blue-500'}`}
-                    />
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-full rounded-sm relative ${isOverLimit
+                        ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500'
+                        : 'bg-blue-500'
+                        }`}
+                    >
+                      {isOverLimit && (
+                        <motion.div
+                          animate={{ opacity: [0, 0.6, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className="absolute inset-0 bg-white"
+                        />
+                      )}
+                    </motion.div>
                   </div>
-                  <span className={`w-8 font-bold text-xs ${isOverLimit ? 'text-red-600 animate-pulse' : 'text-blue-900'}`}>{val}</span>
+
+                  <span className={`w-8 font-bold text-xs ${isOverLimit ? 'text-red-600 animate-pulse' : 'text-blue-900'
+                    }`}>
+                    {val}
+                  </span>
                 </div>
               );
             })}
           </div>
         </section>
 
-        {/* ── 操作区 ── */}
+        {/* ── 作者的话 ─────────────────────────────────────────── */}
+        <section className="relative bg-white border border-neutral-200/60">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 z-10" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400 z-10" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-400 z-10" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400 z-10" />
+
+          <div className="flex items-center justify-between p-6 border-b border-neutral-100">
+            <h3 className="text-base font-bold text-neutral-900 flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-400">
+                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+              </svg>
+              作者的话
+            </h3>
+            <button
+              onClick={() => setAuthorOpen(v => !v)}
+              className="text-sm px-3 py-1 bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors rounded-sm"
+            >
+              {authorOpen ? '收起' : '展开'}
+            </button>
+          </div>
+          {authorOpen && (
+            <div className="p-6 md:p-8 text-[16px] text-neutral-600 leading-loose space-y-4">
+              <p>
+                搞这个 SBTI 测试，初衷其实很简单：看球已经够累了，总得整点花活儿让自己开心。
+                如果这个小测试能让你在看球之余乐呵一下，我这段时间的脑细胞就没白费。当然，现在的 26 个角色肯定装不下蓝军漫长历史里那些有趣的灵魂。如果你有任何炸裂的创意或想看的“新片场”，欢迎去主页的“创意投递窗口”砸向我。
+                优秀的创意会被我直接收录进后续的更新计划里。Keep the Blue Flag Flying High!
+              </p>
+            </div>
+          )}
+        </section>
+
+
+        {/* ── 友情提示 ─────────────────────────────────────────── */}
+        <section className="relative bg-transparent border border-neutral-200/60 p-6 md:p-8">
+          <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400" />
+          <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-neutral-400" />
+          <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-neutral-400" />
+          <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-neutral-400" />
+          <h3 className="text-base font-bold text-neutral-900 mb-3 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-400">
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+            </svg>
+            友情提示
+          </h3>
+          <p className="text-[16px] text-neutral-500 leading-relaxed">
+            本测试仅供娱乐，别拿它去相亲，也别指望靠它
+            <span
+              onClick={onIvanovicTrigger}
+              className="underline decoration-dotted cursor-help hover:text-red-500 transition-colors"
+            >
+              招魂
+            </span>
+            。如果测出来的结果让你不爽……那说明测试很准。感觉好玩的话记得发给朋友一起测！关注CJ的微博和小红书@CJONTHEBEAT了解更多内容和更新！
+          </p>
+        </section>
+
+        {/* ── 操作按钮组 ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 pb-12 w-full relative z-50">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <button onClick={onRetry} className="px-8 py-3 border border-neutral-300 bg-white text-neutral-900 text-sm hover:bg-neutral-50 transition-colors">重新测试</button>
-            <button onClick={handleShare} className="px-8 py-3 bg-neutral-900 text-white text-sm hover:bg-neutral-800 transition-colors">保存鉴定报告</button>
+            <button
+              onClick={onRetry}
+              className="px-8 py-3 border border-neutral-300 bg-white text-neutral-900 text-sm font-normal hover:bg-neutral-50 transition-colors cursor-pointer"
+            >
+              重新测试
+            </button>
+
+            <button
+              onClick={handleShare}
+              className="px-8 py-3 bg-neutral-900 text-white text-sm font-normal hover:bg-neutral-800 transition-colors cursor-pointer"
+            >
+              保存鉴定报告
+            </button>
           </div>
+
+          {(!character.rarity || character.rarity === 'common') && <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              if (shareCode) {
+                navigator.clipboard.writeText(shareCode);
+                alert(`序列号已复制：${shareCode}`);
+              }
+            }}
+            className="w-full sm:w-auto px-8 py-3 border border-blue-600 text-blue-600 text-sm font-bold hover:bg-blue-50 transition-colors tracking-widest cursor-pointer"
+          >
+            生成分享口令
+          </motion.button>}
         </div>
       </main>
     </motion.div>
