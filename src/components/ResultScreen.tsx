@@ -41,12 +41,28 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
   const handleShare = async () => {
     if (!resultRef.current) return;
 
-    // 移动端截图前，建议给一点微小的延迟确保 UI 渲染稳固
     try {
-      const dataUrl = await toPng(resultRef.current, {
-        cacheBust: true,      // 强制绕过缓存，减少 CORS 失败率
-        pixelRatio: 2,        // 2倍清晰度足够，3倍及以上在 iOS 上极易导致内存崩溃导致图片变空
+      const el = resultRef.current;
+      const img = el.querySelector('img');
+
+      // 1. 移动端真机核心：截图前确保图片解码完成
+      if (img) {
+        if (!img.complete) {
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        }
+        // 给浏览器解码像素的一点缓冲时间
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
+      // 2. 调用导出，使用标准 Options
+      const dataUrl = await toPng(el, {
+        cacheBust: true,      // 强制刷新缓存
         backgroundColor: '#fafafa',
+        pixelRatio: 2,        // 2倍图足够清晰且不易触发手机内存溢出
+        skipFonts: false,
         style: {
           transform: 'none',
           margin: '0',
@@ -54,13 +70,14 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
         },
       });
 
+      // 3. 触发下载
       const link = document.createElement('a');
       link.download = `SBTI-${character.code}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error('Save failed:', err);
-      alert('保存图片失败，请尝试直接截图屏幕。');
+      console.error('Failed to generate image', err);
+      alert('保存失败，请尝试长按屏幕截图分享');
     }
   };
 
@@ -73,11 +90,11 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
       className="min-h-screen font-light text-neutral-800 antialiased"
       style={{
         backgroundColor: '#fafafa',
-        backgroundImage: 'repeating-linear-gradient(-45deg, rgba(0,0,0,0.015) 0, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 12px)',
+        backgroundImage:
+          'repeating-linear-gradient(-45deg, rgba(0,0,0,0.015) 0, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 12px)',
       }}
     >
       <main ref={resultRef} className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex flex-col gap-2 bg-[#fafafa]">
-
         {/* ── Hero ─────────────────────────────────────────────── */}
         <section className="relative bg-white border border-neutral-200/60 shadow-sm">
           <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-neutral-400 z-10" />
@@ -90,12 +107,13 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
               <img
                 src={imagePath}
                 alt={character.prototype}
-                // 核心修复点：真机导出必须开启 crossOrigin，否则画布会被“污染”导致图片空白
+                // 关键点：跨域声明，必须配合后端/静态服务器的 CORS 头
                 crossOrigin="anonymous"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://via.placeholder.com/600x600/f8f9fa/adb5bd?text=${character.code}`;
-                }}
                 className="w-full h-full object-contain pointer-events-none"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://via.placeholder.com/600x600/f8f9fa/adb5bd?text=' + character.code;
+                }}
               />
             </div>
 
@@ -120,22 +138,23 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
                 </div>
               )}
             </div>
+
             <p className="text-[16px] text-neutral-500 leading-tight max-w-xl mx-auto border-t border-neutral-100 pt-4">
               {character.prototype} 的精神内核正在你的潜意识中共振。
             </p>
           </div>
         </section>
 
-        {/* ── 解读/标签/数据/等部分保持原样 ─────────────────────────── */}
-        <section className="relative bg-white border border-neutral-200/60 p-6 sm:p-8 md:p-10">
-          <h3 className="text-base font-bold text-neutral-900 mb-6 flex items-center gap-2">该人格的简单解读</h3>
+        {/* ── 解读/标签/数据面板等（保持你原有的精美样式） ── */}
+        <section className="relative bg-white border border-neutral-200/60 p-6 md:p-10">
+          <h3 className="text-base font-bold text-neutral-900 mb-6 flex items-center gap-2">解读该人格</h3>
           <div className="text-[20px] font-regular text-neutral-800 leading-loose space-y-4">
             <p>{character.description}</p>
             <p className="text-blue-900 border-t border-neutral-50 pt-4 font-medium italic">「{character.tagline}」</p>
           </div>
         </section>
 
-        <section className="relative bg-white border border-neutral-200/60 p-6 sm:p-8 md:p-10">
+        <section className="relative bg-white border border-neutral-200/60 p-6 md:p-10">
           <h3 className="text-base font-bold text-neutral-900 mb-1">维度标签</h3>
           <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-neutral-50">
             {character.tags.map((tag) => (
@@ -145,7 +164,7 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
         </section>
 
         <section className="relative bg-white border border-blue-900/10 p-6 md:p-8 mt-2">
-          <h3 className="text-base font-bold text-blue-900 mb-6">战术数据面板 (Match Stats)</h3>
+          <h3 className="text-base font-bold text-blue-900 mb-6 flex items-center gap-2">战术数据面板</h3>
           <div className="space-y-4">
             {(Object.keys(dimInfo) as (keyof Dimensions)[]).map(key => {
               const val = SPECIAL_STATS[character.id]?.[key] ?? character.dimensions[key] ?? 0;
@@ -156,7 +175,8 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
                   <span className="w-24 text-right text-blue-900/70 font-medium text-xs">{dimInfo[key].name}</span>
                   <div className="flex-1 h-2.5 bg-neutral-200/50 rounded-sm overflow-hidden relative">
                     <motion.div
-                      initial={{ width: 0 }} animate={{ width: `${barWidth}%` }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${barWidth}%` }}
                       className={`h-full rounded-sm ${isOverLimit ? 'bg-gradient-to-r from-yellow-400 to-red-500' : 'bg-blue-500'}`}
                     />
                   </div>
@@ -167,11 +187,11 @@ export function ResultScreen({ character, onRetry, shareCode, onIvanovicTrigger 
           </div>
         </section>
 
-        {/* ── 底部操作区 ─────────────────────────── */}
+        {/* ── 操作区 ── */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 pb-12 w-full relative z-50">
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <button onClick={onRetry} className="px-8 py-3 border border-neutral-300 bg-white text-neutral-900 text-sm hover:bg-neutral-50">重新测试</button>
-            <button onClick={handleShare} className="px-8 py-3 bg-neutral-900 text-white text-sm hover:bg-neutral-800">保存鉴定报告</button>
+            <button onClick={onRetry} className="px-8 py-3 border border-neutral-300 bg-white text-neutral-900 text-sm hover:bg-neutral-50 transition-colors">重新测试</button>
+            <button onClick={handleShare} className="px-8 py-3 bg-neutral-900 text-white text-sm hover:bg-neutral-800 transition-colors">保存鉴定报告</button>
           </div>
         </div>
       </main>
