@@ -39,7 +39,7 @@ export function SideNav() {
 
         // 🌟 优化 3：等菜单收起动画（大约 400ms）一播完，丝滑跳转！
         setTimeout(() => {
-            window.location.href = url;
+            navigate(url);
         }, 400);
     };
     return (
